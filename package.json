@@ -1,7 +1,7 @@
 {
   "name": "grunt-qml-compress",
   "description": "compress qml project",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/slin/grunt-qml-compress",
   "author": {
     "name": "sawyerlin",

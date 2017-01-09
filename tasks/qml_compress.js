@@ -24,48 +24,82 @@ module.exports = function(grunt) {
         currentDir = options.qmlRoot,
         currentOutputDir = options.outputRoot,
         done = this.async();
-        walk(options.qmlRoot, function(dir, files, level) {
-            if (dir.indexOf("node_modules") === -1) {
-                if (dir.indexOf('.git') === -1) {
-                    files.forEach(function(fileName, index) {
-                        if (fileName[0] !== '.') {
-                            if (path.extname(fileName).length > 1 || 
-                                    fileName.indexOf('qmldir') !== -1) {
-                                var outputRootDir = path.join(options.outputRoot, dir.replace(options.qmlRoot, ""));
-                                mkdirp(outputRootDir, function (err) {
+        this.files.forEach(function(f) {
+            var src = f.src.filter(function(filePath) {
+                if (!grunt.file.exists(filePath)) {
+                    grunt.log.warn('Source file "' + filePath + '" not found.');
+                    return false;
+                } else {
+                    return true;
+                }
+            }).map(function(filePath) {
+                if (grunt.file.isDir(filePath)) {
+                    walkDir(filePath);
+                } else if (grunt.file.isFile(filePath)) {
+                    var currentOutputFile = path.join(options.outputRoot, filePath.replace(options.qmlRoot, ""));
+                    if (currentOutputFile.indexOf('.qml') !== -1) {
+                        fs.readFile(filePath, 'utf8', function(err, data) {
+                            if (err) {
+                                throw err;
+                            }
+                            mkdirp(path.dirname(currentOutputFile), function (err) {
+                                fs.writeFile(currentOutputFile, compress(data), {
+                                    flag: 'w+'
+                                }, function(err) {
                                     if (err) {
                                         throw err;
                                     }
-                                    var currentFile = path.join(dir, fileName),
-                                    currentOutputFile = path.join(outputRootDir, fileName);
-                                    if (fileName.indexOf('.qml') !== -1 && fileName.indexOf('Config.qml') === -1) {
-                                        fs.readFile(currentFile, 'utf8', function(err, data) {
-                                            if (err) {
-                                                throw err;
-                                            }
-                                            fs.writeFile(currentOutputFile, compress(data), {
-                                                flag: 'w+'
-                                            }, function(err) {
+                                });
+                            });
+                        });
+                    }
+                }
+            });
+        });
+
+        function walkDir(dir) {
+            walk(dir, function(dir, files, level) {
+                if (dir.indexOf("node_modules") === -1) {
+                    if (dir.indexOf('.git') === -1) {
+                        files.forEach(function(fileName, index) {
+                            if (fileName[0] !== '.') {
+                                if (path.extname(fileName).length > 1 || 
+                                        fileName.indexOf('qmldir') !== -1) {
+                                    var outputRootDir = path.join(options.outputRoot, dir.replace(options.qmlRoot, ""));
+                                    mkdirp(outputRootDir, function (err) {
+                                        if (err) {
+                                            throw err;
+                                        }
+                                        var currentFile = path.join(dir, fileName),
+                                            currentOutputFile = path.join(outputRootDir, fileName);
+                                        if (fileName.indexOf('.qml') !== -1) {
+                                            fs.readFile(currentFile, 'utf8', function(err, data) {
                                                 if (err) {
                                                     throw err;
                                                 }
-                                                done();
+                                                fs.writeFile(currentOutputFile, compress(data), {
+                                                    flag: 'w+'
+                                                }, function(err) {
+                                                    if (err) {
+                                                        throw err;
+                                                    }
+                                                });
                                             });
-                                        });
-                                    } else {
-                                        if (fileName[0] !== '.') {
-                                            fs.createReadStream(currentFile).pipe(fs.createWriteStream(currentOutputFile));
                                         } else {
-                                            console.log(fileName);
+                                            if (fileName[0] !== '.') {
+                                                fs.createReadStream(currentFile).pipe(fs.createWriteStream(currentOutputFile));
+                                            } else {
+                                                console.log(fileName);
+                                            }
                                         }
-                                    }
-                                });
+                                    });
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
-            }
-        });
+            });
+        }
 
         function compress(data) {
             var compressString = "";
