@@ -53,11 +53,13 @@ module.exports = function(grunt) {
                             });
                         });
                     } else {
-                        if (filePath[0] !== '.') {
-                            fs.createReadStream(filePath).pipe(fs.createWriteStream(currentOutputFile));
-                        } else {
-                            console.log(filePath);
-                        }
+                        mkdirp(path.dirname(currentOutputFile), function (err) {
+                            if (filePath[0] !== '.') {
+                                fs.createReadStream(filePath).pipe(fs.createWriteStream(currentOutputFile));
+                            } else {
+                                console.log(filePath);
+                            }
+                        });
                     }
                 }
             });
